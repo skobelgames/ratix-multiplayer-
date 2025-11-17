@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>RATIX - Strategic Chess Variant</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
     <style>
         :root {
             --fixed-app-width: 1320px;
@@ -1860,15 +1867,685 @@
         #game-stats-modal .modal-footer button:hover {
             background-color: #45a049;
         }
+
+        /* ========== MULTIPLAYER STYLES ========== */
+
+        /* Authentication Screen */
+        #auth-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            padding: 40px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            width: 640px;
+            min-width: 640px;
+            max-width: 640px;
+            box-sizing: border-box;
+        }
+        #auth-screen h1 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .auth-tab {
+            padding: 10px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .auth-tab.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .auth-form {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            gap: 15px;
+        }
+        .auth-form.active {
+            display: flex;
+        }
+        .auth-form input {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .auth-form button {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+        }
+        .auth-form button:hover {
+            background-color: #45a049;
+        }
+        .auth-error {
+            color: #d32f2f;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+        .auth-divider {
+            margin: 20px 0;
+            text-align: center;
+            color: #666;
+        }
+
+        /* Profile Setup Screen */
+        #profile-setup-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            padding: 40px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            width: 640px;
+            min-width: 640px;
+            max-width: 640px;
+            box-sizing: border-box;
+        }
+        #profile-setup-screen h2 {
+            margin-bottom: 30px;
+        }
+        .profile-form {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 20px;
+        }
+        .profile-form input {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .avatar-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .avatar-selector h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+        .avatar-option {
+            width: 70px;
+            height: 70px;
+            border: 3px solid #ccc;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            background-color: #f9f9f9;
+        }
+        .avatar-option:hover {
+            border-color: #4CAF50;
+            transform: scale(1.1);
+        }
+        .avatar-option.selected {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        /* Main Menu with Multiplayer Options */
+        #main-menu-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            padding: 30px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            width: 700px;
+            min-width: 700px;
+            max-width: 700px;
+            box-sizing: border-box;
+        }
+        .user-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background-color: #e8f5e9;
+        }
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .user-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .user-stats-summary {
+            font-size: 13px;
+            color: #666;
+        }
+        .logout-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+        }
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        .menu-btn {
+            padding: 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .menu-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .menu-btn.secondary {
+            background-color: #2196F3;
+        }
+        .menu-btn.secondary:hover {
+            background-color: #1976D2;
+        }
+
+        /* Matchmaking Lobby */
+        #matchmaking-lobby {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            padding: 30px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            width: 800px;
+            min-width: 800px;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        .lobby-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .lobby-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .lobby-tab {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+        .lobby-tab.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .lobby-content {
+            width: 100%;
+            min-height: 400px;
+        }
+        .lobby-section {
+            display: none;
+        }
+        .lobby-section.active {
+            display: block;
+        }
+        .quick-match-section {
+            text-align: center;
+            padding: 40px;
+        }
+        .quick-match-btn {
+            padding: 20px 40px;
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+        .searching-indicator {
+            display: none;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+        .searching-indicator.active {
+            display: block;
+        }
+        .active-games-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .game-item button {
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .leaderboard-table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .leaderboard-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* Stats and Profile Screen */
+        #stats-profile-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            padding: 30px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            width: 700px;
+            min-width: 700px;
+            max-width: 700px;
+            box-sizing: border-box;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 100%;
+            margin: 20px 0;
+        }
+        .stat-card {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .stat-card .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .achievements-section {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .achievement-badge {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .achievement-badge.unlocked {
+            background-color: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        .achievement-badge .badge-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        .achievement-badge .badge-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+        .achievement-badge .badge-desc {
+            font-size: 10px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        /* Online Game UI Additions */
+        .online-game-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        .opponent-info-bar {
+            display: none;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .opponent-info-bar.active {
+            display: block;
+        }
+        .waiting-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .waiting-overlay.active {
+            display: flex;
+        }
+        .waiting-message {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .waiting-message h2 {
+            margin-bottom: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div id="landing-header">
+    <!-- Authentication Screen -->
+    <div id="auth-screen">
+        <h1>🎮 RATIX Online 🎮</h1>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+        </div>
+
+        <form id="login-form" class="auth-form active" onsubmit="handleLogin(event)">
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="submit">Log In</button>
+            <div id="login-error" class="auth-error"></div>
+        </form>
+
+        <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
+            <input type="email" id="signup-email" placeholder="Email" required>
+            <input type="password" id="signup-password" placeholder="Password (min 6 characters)" required minlength="6">
+            <input type="password" id="signup-confirm" placeholder="Confirm Password" required minlength="6">
+            <button type="submit">Create Account</button>
+            <div id="signup-error" class="auth-error"></div>
+        </form>
+    </div>
+
+    <!-- Profile Setup Screen -->
+    <div id="profile-setup-screen">
+        <h2>Create Your Profile</h2>
+        <form class="profile-form" onsubmit="handleProfileSetup(event)">
+            <div>
+                <label for="username-input">Username</label>
+                <input type="text" id="username-input" placeholder="Enter your username" required minlength="3" maxlength="20">
+            </div>
+
+            <div class="avatar-selector">
+                <h3>Choose Your Avatar</h3>
+                <div class="avatar-grid" id="avatar-grid">
+                    <div class="avatar-option selected" data-avatar="👑" onclick="selectAvatar('👑')">👑</div>
+                    <div class="avatar-option" data-avatar="⚔️" onclick="selectAvatar('⚔️')">⚔️</div>
+                    <div class="avatar-option" data-avatar="🛡️" onclick="selectAvatar('🛡️')">🛡️</div>
+                    <div class="avatar-option" data-avatar="🏹" onclick="selectAvatar('🏹')">🏹</div>
+                    <div class="avatar-option" data-avatar="🧙" onclick="selectAvatar('🧙')">🧙</div>
+                    <div class="avatar-option" data-avatar="🐉" onclick="selectAvatar('🐉')">🐉</div>
+                    <div class="avatar-option" data-avatar="🦁" onclick="selectAvatar('🦁')">🦁</div>
+                    <div class="avatar-option" data-avatar="🦅" onclick="selectAvatar('🦅')">🦅</div>
+                    <div class="avatar-option" data-avatar="🐺" onclick="selectAvatar('🐺')">🐺</div>
+                    <div class="avatar-option" data-avatar="🦈" onclick="selectAvatar('🦈')">🦈</div>
+                    <div class="avatar-option" data-avatar="🔥" onclick="selectAvatar('🔥')">🔥</div>
+                    <div class="avatar-option" data-avatar="⚡" onclick="selectAvatar('⚡')">⚡</div>
+                </div>
+            </div>
+
+            <button type="submit" class="menu-btn">Start Playing</button>
+        </form>
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div id="main-menu-screen">
+        <div class="user-info-bar">
+            <div class="user-profile">
+                <div class="user-avatar" id="menu-user-avatar">👑</div>
+                <div class="user-details">
+                    <div class="user-name" id="menu-user-name">Player</div>
+                    <div class="user-stats-summary" id="menu-user-stats">W: 0 | L: 0 | D: 0</div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">Logout</button>
+        </div>
+
+        <h2>RATIX Online</h2>
+
+        <div class="menu-options">
+            <button class="menu-btn" onclick="showMatchmakingLobby()">🎯 Play Online</button>
+            <button class="menu-btn secondary" onclick="showStatsProfile()">📊 Stats & Profile</button>
+            <button class="menu-btn secondary" onclick="playOffline()">🤖 Play vs AI (Offline)</button>
+        </div>
+    </div>
+
+    <!-- Matchmaking Lobby -->
+    <div id="matchmaking-lobby">
+        <div class="lobby-header">
+            <h2>Matchmaking Lobby</h2>
+            <button onclick="backToMainMenu()">← Back</button>
+        </div>
+
+        <div class="lobby-tabs">
+            <button class="lobby-tab active" onclick="switchLobbyTab('quick-match')">Quick Match</button>
+            <button class="lobby-tab" onclick="switchLobbyTab('active-games')">My Games</button>
+            <button class="lobby-tab" onclick="switchLobbyTab('leaderboard')">Leaderboard</button>
+        </div>
+
+        <div class="lobby-content">
+            <div id="quick-match-section" class="lobby-section active">
+                <div class="quick-match-section">
+                    <h3>Find an opponent and start playing!</h3>
+                    <button class="quick-match-btn" id="quick-match-btn" onclick="startQuickMatch()">Find Match</button>
+                    <button class="quick-match-btn" id="cancel-match-btn" onclick="cancelQuickMatch()" style="display:none; background-color:#d32f2f;">Cancel</button>
+                    <div class="searching-indicator" id="searching-indicator">
+                        <div class="spinner"></div>
+                        <p>Searching for opponent...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="active-games-section" class="lobby-section">
+                <h3>Your Active Games</h3>
+                <div class="active-games-list" id="active-games-list">
+                    <p style="text-align:center; color:#666;">No active games</p>
+                </div>
+            </div>
+
+            <div id="leaderboard-section" class="lobby-section">
+                <h3>Top Players</h3>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Wins</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-tbody">
+                        <tr><td colspan="4" style="text-align:center; color:#666;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats and Profile Screen -->
+    <div id="stats-profile-screen">
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:20px;">
+            <h2>Your Profile</h2>
+            <button onclick="backToMainMenu()">← Back</button>
+        </div>
+
+        <div class="user-profile" style="margin-bottom:30px;">
+            <div class="user-avatar" id="profile-user-avatar" style="width:80px; height:80px; font-size:40px;">👑</div>
+            <div class="user-details">
+                <div class="user-name" id="profile-user-name" style="font-size:24px;">Player</div>
+                <div class="user-stats-summary">Member since: <span id="member-since">-</span></div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Games</h3>
+                <div class="stat-number" id="stat-total-games">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Wins</h3>
+                <div class="stat-number" id="stat-wins">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Losses</h3>
+                <div class="stat-number" id="stat-losses" style="color:#f44336;">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Draws</h3>
+                <div class="stat-number" id="stat-draws" style="color:#ff9800;">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Highest Score</h3>
+                <div class="stat-number" id="stat-high-score">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Points</h3>
+                <div class="stat-number" id="stat-total-points">0</div>
+            </div>
+        </div>
+
+        <div class="achievements-section">
+            <h3>Achievements</h3>
+            <div class="achievements-grid" id="achievements-grid">
+                <!-- Achievements will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Waiting Overlay for Online Games -->
+    <div id="waiting-overlay" class="waiting-overlay">
+        <div class="waiting-message">
+            <h2>Waiting for opponent...</h2>
+            <div class="spinner"></div>
+            <p id="waiting-message-text">Your opponent is thinking...</p>
+        </div>
+    </div>
+
+    <div id="landing-header" style="display:none;">
         <h1>RATIX</h1>
         <p>Created by Craig Skobel</p>
         <button class="how-to-button" onclick="openHowToPlay()">How to Play</button>
     </div>
-    <div id="start-menu">
+    <div id="start-menu" style="display:none;">
         <h2>Select Game Variant</h2>
         <div class="variant-option">
             <button id="variant-btn-24s" data-ready="false" onclick="handleVariantClick('24s')">24's (Standard)</button>
@@ -2249,6 +2926,764 @@
     </audio>
 
     <script>
+        // ========== FIREBASE CONFIGURATION ==========
+        // NOTE: Replace these with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHnqv6ZsBmaUwjKH4W2FSno8nAwPrvTx8",
+            authDomain: "ratix-fbf35.firebaseapp.com",
+            projectId: "ratix-fbf35",
+            storageBucket: "ratix-fbf35.firebasestorage.app",
+            messagingSenderId: "225993624600",
+            appId: "1:225993624600:web:83e5b381acede64d6f476d",
+            measurementId: "G-5MYRC2SMRB"
+        };
+
+        // Initialize Firebase
+        let firebaseApp, auth, db, storage;
+        let currentUser = null;
+        let currentUserProfile = null;
+        let selectedAvatar = '👑';
+        let currentGameId = null;
+        let gameListener = null;
+        let isOnlineGame = false;
+        let myPlayerColor = null; // 'W' or 'B' for online games
+
+        // Initialize Firebase when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                storage = firebase.storage();
+
+                console.log('Firebase initialized successfully');
+
+                // Check authentication state
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        currentUser = user;
+                        loadUserProfile();
+                    } else {
+                        currentUser = null;
+                        currentUserProfile = null;
+                        showAuthScreen();
+                    }
+                });
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                alert('Firebase setup required. Please add your Firebase configuration.');
+            }
+        });
+
+        // ========== AUTHENTICATION FUNCTIONS ==========
+        function switchAuthTab(tab) {
+            const loginTab = document.querySelector('.auth-tab:nth-child(1)');
+            const signupTab = document.querySelector('.auth-tab:nth-child(2)');
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                signupTab.classList.remove('active');
+                loginForm.classList.add('active');
+                signupForm.classList.remove('active');
+            } else {
+                loginTab.classList.remove('active');
+                signupTab.classList.add('active');
+                loginForm.classList.remove('active');
+                signupForm.classList.add('active');
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                errorDiv.style.display = 'none';
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const errorDiv = document.getElementById('signup-error');
+
+            if (password !== confirm) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                errorDiv.style.display = 'none';
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                if (currentGameId && gameListener) {
+                    gameListener(); // Unsubscribe from game updates
+                }
+                await auth.signOut();
+                showAuthScreen();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // ========== PROFILE MANAGEMENT ==========
+        function selectAvatar(avatar) {
+            document.querySelectorAll('.avatar-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            selectedAvatar = avatar;
+        }
+
+        async function handleProfileSetup(event) {
+            event.preventDefault();
+            const username = document.getElementById('username-input').value.trim();
+
+            if (!currentUser) return;
+
+            try {
+                // Check if username is already taken
+                const usernameQuery = await db.collection('users')
+                    .where('username', '==', username)
+                    .get();
+
+                if (!usernameQuery.empty) {
+                    alert('Username already taken. Please choose another.');
+                    return;
+                }
+
+                // Create user profile
+                const profileData = {
+                    uid: currentUser.uid,
+                    email: currentUser.email,
+                    username: username,
+                    avatar: selectedAvatar,
+                    stats: {
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        totalGames: 0,
+                        highestScore: 0,
+                        totalPoints: 0
+                    },
+                    achievements: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('users').doc(currentUser.uid).set(profileData);
+                currentUserProfile = profileData;
+                showMainMenu();
+            } catch (error) {
+                console.error('Profile setup error:', error);
+                alert('Error creating profile: ' + error.message);
+            }
+        }
+
+        async function loadUserProfile() {
+            if (!currentUser) return;
+
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+
+                if (doc.exists) {
+                    currentUserProfile = doc.data();
+                    showMainMenu();
+                } else {
+                    showProfileSetupScreen();
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        async function updateUserStats(result, score) {
+            if (!currentUser || !currentUserProfile) return;
+
+            const updates = {
+                'stats.totalGames': firebase.firestore.FieldValue.increment(1),
+                'stats.totalPoints': firebase.firestore.FieldValue.increment(score),
+                lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (result === 'win') {
+                updates['stats.wins'] = firebase.firestore.FieldValue.increment(1);
+            } else if (result === 'loss') {
+                updates['stats.losses'] = firebase.firestore.FieldValue.increment(1);
+            } else if (result === 'draw') {
+                updates['stats.draws'] = firebase.firestore.FieldValue.increment(1);
+            }
+
+            if (score > currentUserProfile.stats.highestScore) {
+                updates['stats.highestScore'] = score;
+            }
+
+            try {
+                await db.collection('users').doc(currentUser.uid).update(updates);
+                // Reload profile
+                await loadUserProfile();
+                checkAchievements();
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        // ========== ACHIEVEMENTS SYSTEM ==========
+        const ACHIEVEMENTS = [
+            { id: 'first_win', name: 'First Victory', icon: '🏆', desc: 'Win your first game' },
+            { id: 'win_streak_3', name: 'On a Roll', icon: '🔥', desc: 'Win 3 games in a row' },
+            { id: 'win_10', name: 'Veteran', icon: '⚔️', desc: 'Win 10 games' },
+            { id: 'win_50', name: 'Champion', icon: '👑', desc: 'Win 50 games' },
+            { id: 'high_score_100', name: 'Centurion', icon: '💯', desc: 'Score 100+ points' },
+            { id: 'high_score_200', name: 'Destroyer', icon: '💥', desc: 'Score 200+ points' },
+            { id: 'play_100', name: 'Dedicated', icon: '🎮', desc: 'Play 100 games' },
+            { id: 'dragon_master', name: 'Dragon Master', icon: '🐉', desc: 'Capture 50 dragons' },
+            { id: 'perfect_game', name: 'Flawless Victory', icon: '✨', desc: 'Win without losing a piece' }
+        ];
+
+        async function checkAchievements() {
+            if (!currentUser || !currentUserProfile) return;
+
+            const stats = currentUserProfile.stats;
+            const achievements = currentUserProfile.achievements || [];
+            const newAchievements = [];
+
+            // Check each achievement
+            if (stats.wins >= 1 && !achievements.includes('first_win')) {
+                newAchievements.push('first_win');
+            }
+            if (stats.wins >= 10 && !achievements.includes('win_10')) {
+                newAchievements.push('win_10');
+            }
+            if (stats.wins >= 50 && !achievements.includes('win_50')) {
+                newAchievements.push('win_50');
+            }
+            if (stats.highestScore >= 100 && !achievements.includes('high_score_100')) {
+                newAchievements.push('high_score_100');
+            }
+            if (stats.highestScore >= 200 && !achievements.includes('high_score_200')) {
+                newAchievements.push('high_score_200');
+            }
+            if (stats.totalGames >= 100 && !achievements.includes('play_100')) {
+                newAchievements.push('play_100');
+            }
+
+            // Save new achievements
+            if (newAchievements.length > 0) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).update({
+                        achievements: firebase.firestore.FieldValue.arrayUnion(...newAchievements)
+                    });
+
+                    // Show achievement notification
+                    newAchievements.forEach(achId => {
+                        const ach = ACHIEVEMENTS.find(a => a.id === achId);
+                        if (ach) {
+                            showAchievementNotification(ach);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error saving achievements:', error);
+                }
+            }
+        }
+
+        function showAchievementNotification(achievement) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: #4CAF50;
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                animation: slideIn 0.5s;
+            `;
+            notification.innerHTML = `
+                <div style="font-size: 32px; text-align: center;">${achievement.icon}</div>
+                <div style="font-weight: bold; margin-top: 8px;">Achievement Unlocked!</div>
+                <div>${achievement.name}</div>
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+
+        // ========== MATCHMAKING FUNCTIONS ==========
+        let matchmakingListener = null;
+
+        async function startQuickMatch() {
+            if (!currentUser || !currentUserProfile) return;
+
+            try {
+                // Show searching UI
+                document.getElementById('quick-match-btn').style.display = 'none';
+                document.getElementById('cancel-match-btn').style.display = 'block';
+                document.getElementById('searching-indicator').classList.add('active');
+
+                // Check for waiting opponents
+                const waitingQuery = await db.collection('matchmaking')
+                    .where('status', '==', 'waiting')
+                    .limit(1)
+                    .get();
+
+                if (!waitingQuery.empty) {
+                    // Join existing game
+                    const matchDoc = waitingQuery.docs[0];
+                    const matchId = matchDoc.id;
+                    const matchData = matchDoc.data();
+
+                    // Create game with both players
+                    await createOnlineGame(matchData.playerId, currentUser.uid);
+
+                    // Delete matchmaking entry
+                    await db.collection('matchmaking').doc(matchId).delete();
+                } else {
+                    // Create matchmaking entry
+                    const matchRef = await db.collection('matchmaking').add({
+                        playerId: currentUser.uid,
+                        playerName: currentUserProfile.username,
+                        playerAvatar: currentUserProfile.avatar,
+                        status: 'waiting',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Listen for match
+                    matchmakingListener = db.collection('matchmaking').doc(matchRef.id)
+                        .onSnapshot(snapshot => {
+                            if (!snapshot.exists) {
+                                // Match found! The document was deleted after game creation
+                                if (matchmakingListener) {
+                                    matchmakingListener();
+                                    matchmakingListener = null;
+                                }
+                            }
+                        });
+                }
+            } catch (error) {
+                console.error('Matchmaking error:', error);
+                cancelQuickMatch();
+                alert('Error finding match: ' + error.message);
+            }
+        }
+
+        async function cancelQuickMatch() {
+            // Remove matchmaking entry
+            if (matchmakingListener) {
+                matchmakingListener();
+                matchmakingListener = null;
+            }
+
+            try {
+                const matchQuery = await db.collection('matchmaking')
+                    .where('playerId', '==', currentUser.uid)
+                    .get();
+
+                matchQuery.forEach(doc => doc.ref.delete());
+            } catch (error) {
+                console.error('Error canceling match:', error);
+            }
+
+            // Reset UI
+            document.getElementById('quick-match-btn').style.display = 'block';
+            document.getElementById('cancel-match-btn').style.display = 'none';
+            document.getElementById('searching-indicator').classList.remove('active');
+        }
+
+        async function createOnlineGame(player1Id, player2Id) {
+            try {
+                // Get both player profiles
+                const p1Doc = await db.collection('users').doc(player1Id).get();
+                const p2Doc = await db.collection('users').doc(player2Id).get();
+                const p1Data = p1Doc.data();
+                const p2Data = p2Doc.data();
+
+                // Create game document
+                const gameRef = await db.collection('games').add({
+                    player1: {
+                        uid: player1Id,
+                        username: p1Data.username,
+                        avatar: p1Data.avatar,
+                        color: 'W'
+                    },
+                    player2: {
+                        uid: player2Id,
+                        username: p2Data.username,
+                        avatar: p2Data.avatar,
+                        color: 'B'
+                    },
+                    currentTurn: 'W',
+                    status: 'active',
+                    variant: '24s', // Default variant
+                    gameState: null, // Will be set when game starts
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMove: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                currentGameId = gameRef.id;
+                myPlayerColor = (currentUser.uid === player1Id) ? 'W' : 'B';
+                isOnlineGame = true;
+
+                // Start the game
+                startOnlineGame(gameRef.id);
+            } catch (error) {
+                console.error('Error creating game:', error);
+                alert('Error creating game: ' + error.message);
+            }
+        }
+
+        async function startOnlineGame(gameId) {
+            currentGameId = gameId;
+
+            // Listen for game updates
+            gameListener = db.collection('games').doc(gameId).onSnapshot(snapshot => {
+                if (snapshot.exists) {
+                    handleGameUpdate(snapshot.data());
+                }
+            });
+
+            // Hide matchmaking, show game
+            hideAllScreens();
+            document.getElementById('game-container').style.display = 'flex';
+            document.body.classList.add('game-loaded');
+
+            // Start the actual game
+            handleVariantClick('24s');
+        }
+
+        function handleGameUpdate(gameData) {
+            // Skip initial update if game hasn't started yet
+            if (!gameData.gameState) {
+                // Game just created, initialize it
+                if (gameData.currentTurn === myPlayerColor && !board) {
+                    // We're the starting player, initialize the game state
+                    setTimeout(() => {
+                        const initialState = captureGameState();
+                        db.collection('games').doc(currentGameId).update({
+                            gameState: initialState
+                        });
+                    }, 1000);
+                }
+                return;
+            }
+
+            // If it's not our turn, show waiting overlay
+            if (gameData.currentTurn !== myPlayerColor) {
+                document.getElementById('waiting-overlay').classList.add('active');
+            } else {
+                document.getElementById('waiting-overlay').classList.remove('active');
+            }
+
+            // Update board if game state changed
+            if (gameData.gameState) {
+                // Load game state (board, pieces, scores, etc.)
+                loadGameState(gameData.gameState);
+            }
+
+            // Check if game is completed
+            if (gameData.status === 'completed') {
+                if (gameListener) {
+                    gameListener();
+                    gameListener = null;
+                }
+            }
+        }
+
+        async function sendMove(moveData) {
+            if (!currentGameId || !isOnlineGame) return;
+
+            try {
+                // Update game with new state
+                const gameState = captureGameState();
+
+                await db.collection('games').doc(currentGameId).update({
+                    gameState: gameState,
+                    currentTurn: currentPlayer === 'W' ? 'B' : 'W',
+                    lastMove: firebase.firestore.FieldValue.serverTimestamp(),
+                    moveHistory: firebase.firestore.FieldValue.arrayUnion(moveData)
+                });
+            } catch (error) {
+                console.error('Error sending move:', error);
+            }
+        }
+
+        function captureGameState() {
+            return {
+                board: board,
+                currentPlayer: currentPlayer,
+                scores: scores,
+                movesLeft: movesLeft,
+                capturedPieces: capturedPieces,
+                gameLog: gameLog,
+                roundNumber: roundNumber || 1
+            };
+        }
+
+        function loadGameState(state) {
+            board = state.board;
+            currentPlayer = state.currentPlayer;
+            scores = state.scores;
+            movesLeft = state.movesLeft;
+            capturedPieces = state.capturedPieces;
+            gameLog = state.gameLog || [];
+            roundNumber = state.roundNumber || 1;
+
+            renderBoard();
+            updateUI();
+        }
+
+        async function endOnlineGame(result) {
+            if (!currentGameId || !isOnlineGame) return;
+
+            try {
+                await db.collection('games').doc(currentGameId).update({
+                    status: 'completed',
+                    result: result,
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Update user stats
+                let myResult = 'draw';
+                if (result.winner) {
+                    myResult = (result.winner === myPlayerColor) ? 'win' : 'loss';
+                }
+
+                const myScore = (myPlayerColor === 'W') ? scores.W : scores.B;
+                await updateUserStats(myResult, myScore);
+
+                // Cleanup
+                if (gameListener) {
+                    gameListener();
+                    gameListener = null;
+                }
+
+                currentGameId = null;
+                isOnlineGame = false;
+                myPlayerColor = null;
+            } catch (error) {
+                console.error('Error ending game:', error);
+            }
+        }
+
+        // ========== SCREEN NAVIGATION ==========
+        function showAuthScreen() {
+            hideAllScreens();
+            document.getElementById('auth-screen').style.display = 'flex';
+        }
+
+        function showProfileSetupScreen() {
+            hideAllScreens();
+            document.getElementById('profile-setup-screen').style.display = 'flex';
+        }
+
+        function showMainMenu() {
+            hideAllScreens();
+            document.getElementById('main-menu-screen').style.display = 'flex';
+            updateMainMenuUI();
+        }
+
+        function showMatchmakingLobby() {
+            hideAllScreens();
+            document.getElementById('matchmaking-lobby').style.display = 'flex';
+            loadLeaderboard();
+            loadActiveGames();
+        }
+
+        function showStatsProfile() {
+            hideAllScreens();
+            document.getElementById('stats-profile-screen').style.display = 'flex';
+            updateStatsUI();
+        }
+
+        function backToMainMenu() {
+            cancelQuickMatch();
+            showMainMenu();
+        }
+
+        function playOffline() {
+            isOnlineGame = false;
+            myPlayerColor = null;
+            hideAllScreens();
+            document.getElementById('landing-header').style.display = 'flex';
+            document.getElementById('start-menu').style.display = 'flex';
+        }
+
+        function hideAllScreens() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('profile-setup-screen').style.display = 'none';
+            document.getElementById('main-menu-screen').style.display = 'none';
+            document.getElementById('matchmaking-lobby').style.display = 'none';
+            document.getElementById('stats-profile-screen').style.display = 'none';
+            document.getElementById('landing-header').style.display = 'none';
+            document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('game-container').style.display = 'none';
+            document.body.classList.remove('game-loaded');
+        }
+
+        function updateMainMenuUI() {
+            if (!currentUserProfile) return;
+
+            document.getElementById('menu-user-avatar').textContent = currentUserProfile.avatar;
+            document.getElementById('menu-user-name').textContent = currentUserProfile.username;
+            document.getElementById('menu-user-stats').textContent =
+                `W: ${currentUserProfile.stats.wins} | L: ${currentUserProfile.stats.losses} | D: ${currentUserProfile.stats.draws}`;
+        }
+
+        function updateStatsUI() {
+            if (!currentUserProfile) return;
+
+            document.getElementById('profile-user-avatar').textContent = currentUserProfile.avatar;
+            document.getElementById('profile-user-name').textContent = currentUserProfile.username;
+
+            const stats = currentUserProfile.stats;
+            document.getElementById('stat-total-games').textContent = stats.totalGames;
+            document.getElementById('stat-wins').textContent = stats.wins;
+            document.getElementById('stat-losses').textContent = stats.losses;
+            document.getElementById('stat-draws').textContent = stats.draws;
+            document.getElementById('stat-high-score').textContent = stats.highestScore;
+            document.getElementById('stat-total-points').textContent = stats.totalPoints;
+
+            if (currentUserProfile.createdAt) {
+                const date = currentUserProfile.createdAt.toDate();
+                document.getElementById('member-since').textContent = date.toLocaleDateString();
+            }
+
+            // Update achievements
+            const achievementsGrid = document.getElementById('achievements-grid');
+            achievementsGrid.innerHTML = '';
+
+            ACHIEVEMENTS.forEach(ach => {
+                const unlocked = (currentUserProfile.achievements || []).includes(ach.id);
+                const badge = document.createElement('div');
+                badge.className = 'achievement-badge' + (unlocked ? ' unlocked' : '');
+                badge.innerHTML = `
+                    <div class="badge-icon">${unlocked ? ach.icon : '🔒'}</div>
+                    <div class="badge-title">${ach.name}</div>
+                    <div class="badge-desc">${ach.desc}</div>
+                `;
+                achievementsGrid.appendChild(badge);
+            });
+        }
+
+        function switchLobbyTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.lobby-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.lobby-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(tab + '-section').classList.add('active');
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const snapshot = await db.collection('users')
+                    .orderBy('stats.wins', 'desc')
+                    .limit(10)
+                    .get();
+
+                const tbody = document.getElementById('leaderboard-tbody');
+                tbody.innerHTML = '';
+
+                snapshot.docs.forEach((doc, index) => {
+                    const data = doc.data();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${data.avatar} ${data.username}</td>
+                        <td>${data.stats.wins}</td>
+                        <td>${data.stats.totalPoints}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#666;">No players yet</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+            }
+        }
+
+        async function loadActiveGames() {
+            if (!currentUser) return;
+
+            try {
+                const snapshot = await db.collection('games')
+                    .where('status', '==', 'active')
+                    .get();
+
+                const myGames = snapshot.docs.filter(doc => {
+                    const data = doc.data();
+                    return data.player1.uid === currentUser.uid || data.player2.uid === currentUser.uid;
+                });
+
+                const listDiv = document.getElementById('active-games-list');
+                listDiv.innerHTML = '';
+
+                if (myGames.length === 0) {
+                    listDiv.innerHTML = '<p style="text-align:center; color:#666;">No active games</p>';
+                } else {
+                    myGames.forEach(doc => {
+                        const data = doc.data();
+                        const opponent = (data.player1.uid === currentUser.uid) ? data.player2 : data.player1;
+
+                        const gameItem = document.createElement('div');
+                        gameItem.className = 'game-item';
+                        gameItem.innerHTML = `
+                            <div>
+                                <strong>vs ${opponent.avatar} ${opponent.username}</strong><br>
+                                <span style="font-size:12px; color:#666;">Your turn: ${data.currentTurn === myPlayerColor ? 'Yes' : 'No'}</span>
+                            </div>
+                            <button onclick="resumeGame('${doc.id}')">Continue</button>
+                        `;
+                        listDiv.appendChild(gameItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading active games:', error);
+            }
+        }
+
+        async function resumeGame(gameId) {
+            currentGameId = gameId;
+            const gameDoc = await db.collection('games').doc(gameId).get();
+            const gameData = gameDoc.data();
+
+            myPlayerColor = (gameData.player1.uid === currentUser.uid) ? 'W' : 'B';
+            isOnlineGame = true;
+
+            startOnlineGame(gameId);
+        }
+
+        // ========== ORIGINAL GAME CODE STARTS HERE ==========
         let ROWS = 10;
         let COLS = 12;
         let gameVariant = '24s';
@@ -3436,6 +4871,19 @@
             if (firstPlayer === 'B') {
                 // AI went first, so player finishing means round is complete
                 gameRound++;
+            }
+
+            // Handle online multiplayer - send move to Firebase instead of AI
+            if (isOnlineGame) {
+                const moveData = {
+                    type: 'turn_end',
+                    player: currentPlayer,
+                    timestamp: Date.now()
+                };
+                sendMove(moveData);
+                // Show waiting overlay for opponent
+                document.getElementById('waiting-overlay').classList.add('active');
+                return;
             }
 
             aiPending = true;
@@ -19019,6 +20467,15 @@
             // Clear AI pending and other active game states
             aiPending = false;
             resetReinforcementState();
+
+            // Handle online multiplayer game end
+            if (isOnlineGame) {
+                endOnlineGame({
+                    winner: winner === 'draw' ? null : winner,
+                    reason: reason,
+                    finalScores: { W: scores['W'], B: scores['B'] }
+                });
+            }
         }
 
         function checkGameOver() {
